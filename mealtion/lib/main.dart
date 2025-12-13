@@ -25,29 +25,44 @@ class MealtionApp extends StatelessWidget {
       title: 'Mealtion',
       debugShowCheckedModeBanner: false,
       theme: buildMealtionTheme(),
-      // Use builder to constrain the app view on wide screens (desktop/web)
+      // Builder to handle the phone frame layout
       builder: (context, child) {
         return Scaffold(
-          // Background color for the outer desktop area
+          // Grey background for the browser/desktop area
           backgroundColor: Colors.grey[200],
           body: Center(
-            child: Container(
-              // Constrain width to simulate mobile device
-              constraints: const BoxConstraints(maxWidth: 480),
-              // Clip content to match the border radius
-              clipBehavior: Clip.hardEdge,
-              decoration: BoxDecoration(
-                // Rounded corners matching the wireframe
-                borderRadius: BorderRadius.circular(30),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black12,
-                    blurRadius: 20,
-                    offset: const Offset(0, 10),
+            // 1. Add margin so the phone never touches the browser edges
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 20.0),
+              
+              // 2. FittedBox scales the child down if the screen is too small
+              // avoiding distortion/squeezing while keeping aspect ratio.
+              child: FittedBox(
+                fit: BoxFit.contain,
+                
+                // 3. Define the ideal logical size of the phone (iPhone 14)
+                child: SizedBox(
+                  width: 390, 
+                  height: 844, 
+                  child: Container(
+                    // 4. Decoration (Shadow and Rounded Corners)
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(40),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.15),
+                          blurRadius: 30,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
+                    ),
+                    // 5. Clip the app content to the rounded corners
+                    clipBehavior: Clip.hardEdge,
+                    child: child,
                   ),
-                ],
+                ),
               ),
-              child: child,
             ),
           ),
         );
@@ -122,7 +137,8 @@ class _AuthWrapperState extends State<AuthWrapper> with SingleTickerProviderStat
                 ),
               );
             },
-            child: MealtionLogo(height: 40, variant: 'white'),
+            // Use logo from theme.dart
+            child: const MealtionLogo(height: 40, variant: 'white'),
           ),
         ),
       );
