@@ -111,6 +111,7 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
     final appState = context.watch<AppState>();
     final meals = appState.mealsForWidgets;
     final plans = appState.plansForWidgets;
+    final isLoading = appState.loadingMeals || appState.loadingPlans;
 
     return Scaffold(
       body: Stack(
@@ -195,6 +196,24 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
               ),
             ),
           ),
+
+          // Loading overlay
+          if (isLoading)
+            Positioned.fill(
+              child: AnimatedOpacity(
+                opacity: isLoading ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 200),
+                child: Container(
+                  color: Colors.white.withOpacity(0.7),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      color: AppColors.primary,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                ),
+              ),
+            ),
         ],
       ),
     );
