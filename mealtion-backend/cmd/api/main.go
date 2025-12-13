@@ -18,14 +18,29 @@ func main() {
 	client := db.MustConnectMongo(cfg.MongoURI)
 	database := client.Database(cfg.MongoDB)
 
+	if err := db.EnsureIndexes(database); err != nil {
+		log.Fatal(err)
+	}
+
 	s := handlers.NewServer(database)
 
 	r := mux.NewRouter()
+
+	// Public
 	r.HandleFunc("/health", s.Health).Methods(http.MethodGet)
-	r.HandleFunc("/meals", s.Meals).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/plans", s.Plans).Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
-	r.HandleFunc("/auth/register", s.Register).Methods("POST")
-	r.HandleFunc("/auth/login", s.Login).Methods("POST")
+	r.HandleFunc("/auth/register", s.Register).Methods(http.MethodPost)
+	r.HandleFunc("/auth/login", s.Login).Methods(http.MethodPost)
+	r.HandleFunc("/auth/me", s.Me).Methods(http.MethodGet) // will be protected below (better)
+
+	// Protected (JWT required)
+	r.Handle("/meals", middleware.WithAuth(http.HandlerFunc(s.Meals))).
+		Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
+
+	r.Handle("/plans", middleware.WithAuth(http.HandlerFunc(s.Plans))).
+		Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
+
+	r.Handle("/auth/me", middleware.WithAuth(http.HandlerFunc(s.Me))).
+		Methods(http.MethodGet)
 
 	log.Println("Go API running at http://localhost:8080")
 	log.Fatal(http.ListenAndServe(":8080", middleware.WithCORS(r)))

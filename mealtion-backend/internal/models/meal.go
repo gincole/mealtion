@@ -7,6 +7,7 @@ import (
 )
 
 type Meal struct {
+	UserID    primitive.ObjectID `bson:"userId" json:"userId"`
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	Title     string             `bson:"title" json:"title"`
 	ImageURL  string             `bson:"imageUrl" json:"imageUrl"`
