@@ -1,0 +1,157 @@
+import 'package:flutter/material.dart';
+import '../../app/colors.dart';
+import 'widgets/timeline.dart';
+
+class GalleryView extends StatelessWidget {
+  const GalleryView({
+    super.key,
+    required this.meals,
+    required this.viewMode,
+    required this.onChangeMode,
+    required this.onOpenMealDetail,
+    required this.moodColor,
+  });
+
+  final List<Map<String, dynamic>> meals;
+  final String viewMode; // 'calendar' (timeline) or 'grid'
+  final void Function(String) onChangeMode;
+  final void Function(Map<String, dynamic>) onOpenMealDetail;
+  final Color Function(String) moodColor;
+
+  Map<String, List<Map<String, dynamic>>> _groupMealsByDate() {
+    final grouped = <String, List<Map<String, dynamic>>>{};
+    for (final meal in meals) {
+      final date = meal['date'] as String;
+      grouped.putIfAbsent(date, () => []);
+      grouped[date]!.add(meal);
+    }
+    return grouped;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final groupedMeals = _groupMealsByDate();
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(bottom: 100, top: 16),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                const Text(
+                  'Gallery',
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppColors.textMain),
+                ),
+                Row(
+                  children: [
+                    _ModeButton(
+                      label: 'Timeline',
+                      active: viewMode == 'calendar',
+                      onTap: () => onChangeMode('calendar'),
+                    ),
+                    const SizedBox(width: 8),
+                    _ModeButton(
+                      label: 'Grid',
+                      active: viewMode == 'grid',
+                      onTap: () => onChangeMode('grid'),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+
+            if (viewMode == 'grid')
+              _GridSection(
+                meals: meals,
+                onOpenMealDetail: onOpenMealDetail,
+              )
+            else
+              TimelineSection(
+                groupedMeals: groupedMeals,
+                moodColor: moodColor,
+                onOpenMealDetail: onOpenMealDetail,
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _ModeButton extends StatelessWidget {
+  const _ModeButton({required this.label, required this.active, required this.onTap});
+
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: active ? AppColors.primary : Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: active ? Colors.white : AppColors.textMain,
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GridSection extends StatelessWidget {
+  const _GridSection({
+    required this.meals,
+    required this.onOpenMealDetail,
+  });
+
+  final List<Map<String, dynamic>> meals;
+  final void Function(Map<String, dynamic>) onOpenMealDetail;
+
+  @override
+  Widget build(BuildContext context) {
+    return GridView.builder(
+      itemCount: meals.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 3,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+      ),
+      itemBuilder: (_, i) {
+        final meal = meals[i];
+        return GestureDetector(
+          onTap: () => onOpenMealDetail(meal),
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+              image: DecorationImage(
+                image: NetworkImage(meal['img']),
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
