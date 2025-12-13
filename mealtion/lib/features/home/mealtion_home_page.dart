@@ -106,50 +106,6 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
     );
   }
 
-  Widget _buildPage(int index, List<Map<String, dynamic>> meals, List<Map<String, dynamic>> plans, AppState appState) {
-    switch (index) {
-      case 0:
-        return _HomeView(
-          key: const ValueKey(0),
-          meals: meals,
-          plans: plans,
-          onOpenMealDetail: openMealDetailModal,
-          moodColor: moodColor,
-          onRefresh: () async {
-            await Future.wait([
-              appState.loadMeals(),
-              appState.loadPlans(),
-            ]);
-          },
-        );
-      case 1:
-        return GalleryView(
-          key: const ValueKey(1),
-          meals: meals,
-          viewMode: galleryViewMode,
-          onChangeMode: (m) => setState(() => galleryViewMode = m),
-          onOpenMealDetail: openMealDetailModal,
-          moodColor: moodColor,
-          onDeleteMeal: (mealId) async {
-            await appState.deleteMeal(mealId);
-          },
-        );
-      case 2:
-        return PlanView(
-          key: const ValueKey(2),
-          plans: plans,
-          onNewPlan: openAddPlanModal,
-          onDeletePlan: (planId) async {
-            await appState.deletePlan(planId);
-          },
-        );
-      case 3:
-        return const SettingsView(key: ValueKey(3));
-      default:
-        return const SizedBox.shrink();
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     final appState = context.watch<AppState>();
@@ -164,9 +120,40 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
             bottom: false, // bottom nav already handled
             child: Padding(
               padding: const EdgeInsets.only(top: 60), // adjust top spacing
-              child: AnimatedSwitcher(
-                duration: const Duration(milliseconds: 200),
-                child: _buildPage(activeTab, meals, plans, appState),
+              child: IndexedStack(
+                index: activeTab,
+                children: [
+                  _HomeView(
+                    meals: meals,
+                    plans: plans,
+                    onOpenMealDetail: openMealDetailModal,
+                    moodColor: moodColor,
+                    onRefresh: () async {
+                      await Future.wait([
+                        appState.loadMeals(),
+                        appState.loadPlans(),
+                      ]);
+                    },
+                  ),
+                  GalleryView(
+                    meals: meals,
+                    viewMode: galleryViewMode,
+                    onChangeMode: (m) => setState(() => galleryViewMode = m),
+                    onOpenMealDetail: openMealDetailModal,
+                    moodColor: moodColor,
+                    onDeleteMeal: (mealId) async {
+                      await appState.deleteMeal(mealId);
+                    },
+                  ),
+                  PlanView(
+                    plans: plans,
+                    onNewPlan: openAddPlanModal,
+                    onDeletePlan: (planId) async {
+                      await appState.deletePlan(planId);
+                    },
+                  ),
+                  const SettingsView(),
+                ],
               ),
             ),
           ),
