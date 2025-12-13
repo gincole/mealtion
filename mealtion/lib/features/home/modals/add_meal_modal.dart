@@ -1,5 +1,10 @@
+import 'dart:convert';
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../app/colors.dart';
+import '../../../app/app_state.dart';
 
 class AddMealModal extends StatefulWidget {
   const AddMealModal({
@@ -7,18 +12,187 @@ class AddMealModal extends StatefulWidget {
     required this.date,
     required this.onPickDate,
     required this.moodColor,
+    this.isPlan = false,
   });
 
   final DateTime date;
   final VoidCallback onPickDate;
   final Color Function(String) moodColor;
+  final bool isPlan;
 
   @override
   State<AddMealModal> createState() => _AddMealModalState();
 }
 
 class _AddMealModalState extends State<AddMealModal> {
-  String _selectedType = "healthy"; // healthy | moderate | cheat
+  String _selectedType = "green"; // green | yellow | red
+  final _titleController = TextEditingController();
+  final _locationController = TextEditingController();
+  TimeOfDay _selectedTime = TimeOfDay.now();
+  late DateTime _selectedDate;
+  bool _loading = false;
+  String? _error;
+
+  // Image state
+  Uint8List? _imageBytes;
+  String? _imageContentType;
+  final ImagePicker _picker = ImagePicker();
+
+  @override
+  void initState() {
+    super.initState();
+    _selectedDate = widget.date;
+  }
+
+  Future<void> _pickDate() async {
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedDate,
+      firstDate: DateTime(2020),
+      lastDate: DateTime(2035),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppColors.primary,
+              onPrimary: Colors.white,
+              surface: Colors.white,
+              onSurface: AppColors.textMain,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
+      setState(() => _selectedDate = picked);
+    }
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final XFile? image = await _picker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 80,
+      );
+
+      if (image != null) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _imageBytes = bytes;
+          _imageContentType = image.mimeType ?? 'image/jpeg';
+        });
+      }
+    } catch (e) {
+      setState(() => _error = 'Failed to pick image: $e');
+    }
+  }
+
+  void _showImageSourceDialog() {
+    showModalBottomSheet(
+      context: context,
+      builder: (ctx) => SafeArea(
+        child: Wrap(
+          children: [
+            ListTile(
+              leading: const Icon(Icons.camera_alt),
+              title: const Text('Take a photo'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.camera);
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library),
+              title: const Text('Choose from gallery'),
+              onTap: () {
+                Navigator.pop(ctx);
+                _pickImage(ImageSource.gallery);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _saveMeal() async {
+    if (_titleController.text.isEmpty) {
+      setState(() => _error = widget.isPlan ? 'Please enter a plan name' : 'Please enter a meal name');
+      return;
+    }
+
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
+
+    try {
+      final appState = context.read<AppState>();
+
+      if (widget.isPlan) {
+        // Save as plan
+        String mealTime = 'Lunch';
+        final hour = _selectedTime.hour;
+        if (hour < 10) {
+          mealTime = 'Breakfast';
+        } else if (hour < 14) {
+          mealTime = 'Lunch';
+        } else {
+          mealTime = 'Dinner';
+        }
+
+        await appState.addPlan(
+          title: _titleController.text.trim(),
+          date: _formatDate(_selectedDate),
+          time: _formatTime(_selectedTime),
+          mealTime: mealTime,
+          status: _selectedType,
+        );
+      } else {
+        // Save as meal
+        String? imageBase64;
+        if (_imageBytes != null) {
+          imageBase64 = base64Encode(_imageBytes!);
+        }
+
+        await appState.addMeal(
+          title: _titleController.text.trim(),
+          status: _selectedType,
+          date: _formatDate(_selectedDate),
+          time: _formatTime(_selectedTime),
+          location: _locationController.text.trim(),
+          imageBase64: imageBase64,
+          imageContentType: _imageContentType,
+        );
+      }
+
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      setState(() => _error = e.toString());
+    } finally {
+      if (mounted) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _pickTime() async {
+    final time = await showTimePicker(
+      context: context,
+      initialTime: _selectedTime,
+    );
+    if (time != null) {
+      setState(() => _selectedTime = time);
+    }
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _locationController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -39,9 +213,9 @@ class _AddMealModalState extends State<AddMealModal> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text(
-                    'Add Meal',
-                    style: TextStyle(
+                  Text(
+                    widget.isPlan ? 'Add Plan' : 'Add Meal',
+                    style: const TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
                       color: AppColors.textMain,
@@ -55,20 +229,40 @@ class _AddMealModalState extends State<AddMealModal> {
               ),
               const SizedBox(height: 10),
 
-              // Photo attachment placeholder (UI-only)
-              _PhotoPickerCard(
-                onTap: () {
-                  // TODO: Implement real image picking (camera/gallery) later
-                },
-              ),
-              const SizedBox(height: 16),
+              if (_error != null)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 10),
+                  decoration: BoxDecoration(
+                    color: AppColors.red.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    _error!,
+                    style: TextStyle(color: Colors.red[700], fontSize: 13),
+                  ),
+                ),
+
+              // Photo attachment (only show for meals, not plans)
+              if (!widget.isPlan) ...[
+                _PhotoPickerCardWithImage(
+                  imageBytes: _imageBytes,
+                  onTap: _showImageSourceDialog,
+                  onRemove: () => setState(() {
+                    _imageBytes = null;
+                    _imageContentType = null;
+                  }),
+                ),
+                const SizedBox(height: 16),
+              ],
 
               // Meal name
-              const _SectionLabel('MEAL NAME'),
+              _SectionLabel(widget.isPlan ? 'Plan Name' : 'Meal Name'),
               const SizedBox(height: 8),
-              const _TextInput(
-                hint: 'What did you eat?',
+              _TextInput(
+                hint: widget.isPlan ? 'What will you eat?' : 'What did you eat?',
                 prefixIcon: null,
+                controller: _titleController,
               ),
               const SizedBox(height: 14),
 
@@ -77,38 +271,39 @@ class _AddMealModalState extends State<AddMealModal> {
                 children: [
                   Expanded(
                     child: _PickerField(
-                      label: 'DATE',
-                      value: _formatDate(widget.date),
+                      label: 'Date',
+                      value: _formatDate(_selectedDate),
                       icon: Icons.calendar_today,
-                      onTap: widget.onPickDate,
+                      onTap: _pickDate,
                     ),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: _PickerField(
-                      label: 'TIME',
-                      value: '12:30 PM',
+                      label: 'Time',
+                      value: _formatTime(_selectedTime),
                       icon: Icons.access_time,
-                      onTap: () {
-                        // TODO: Implement time picker later
-                      },
+                      onTap: _pickTime,
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 14),
 
-              // Location
-              const _SectionLabel('LOCATION'),
-              const SizedBox(height: 8),
-              const _TextInput(
-                hint: 'Add location',
-                prefixIcon: Icons.location_on,
-              ),
-              const SizedBox(height: 14),
+              // Location (only show for meals, not plans)
+              if (!widget.isPlan) ...[
+                const _SectionLabel('Location'),
+                const SizedBox(height: 8),
+                _TextInput(
+                  hint: 'Add location',
+                  prefixIcon: Icons.location_on,
+                  controller: _locationController,
+                ),
+                const SizedBox(height: 14),
+              ],
 
               // Type selection
-              const _SectionLabel('TYPE'),
+              const _SectionLabel('Type'),
               const SizedBox(height: 10),
               Row(
                 children: [
@@ -117,8 +312,8 @@ class _AddMealModalState extends State<AddMealModal> {
                       label: 'Healthy',
                       dotColor: AppColors.green,
                       bgColor: AppColors.green.withOpacity(0.20),
-                      selected: _selectedType == "healthy",
-                      onTap: () => setState(() => _selectedType = "healthy"),
+                      selected: _selectedType == "green",
+                      onTap: () => setState(() => _selectedType = "green"),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -127,8 +322,8 @@ class _AddMealModalState extends State<AddMealModal> {
                       label: 'Moderate',
                       dotColor: AppColors.yellow,
                       bgColor: AppColors.yellow.withOpacity(0.25),
-                      selected: _selectedType == "moderate",
-                      onTap: () => setState(() => _selectedType = "moderate"),
+                      selected: _selectedType == "yellow",
+                      onTap: () => setState(() => _selectedType = "yellow"),
                     ),
                   ),
                   const SizedBox(width: 10),
@@ -137,8 +332,8 @@ class _AddMealModalState extends State<AddMealModal> {
                       label: 'Cheat',
                       dotColor: AppColors.red,
                       bgColor: AppColors.red.withOpacity(0.20),
-                      selected: _selectedType == "cheat",
-                      onTap: () => setState(() => _selectedType = "cheat"),
+                      selected: _selectedType == "red",
+                      onTap: () => setState(() => _selectedType = "red"),
                     ),
                   ),
                 ],
@@ -154,11 +349,20 @@ class _AddMealModalState extends State<AddMealModal> {
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
                   ),
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text(
-                    'Save Meal',
-                    style: TextStyle(fontWeight: FontWeight.w700),
-                  ),
+                  onPressed: _loading ? null : _saveMeal,
+                  child: _loading
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            strokeWidth: 2,
+                            color: Colors.white,
+                          ),
+                        )
+                      : Text(
+                          widget.isPlan ? 'Save Plan' : 'Save Meal',
+                          style: const TextStyle(fontWeight: FontWeight.w700),
+                        ),
                 ),
               ),
             ],
@@ -169,13 +373,50 @@ class _AddMealModalState extends State<AddMealModal> {
   }
 }
 
-class _PhotoPickerCard extends StatelessWidget {
-  const _PhotoPickerCard({required this.onTap});
+class _PhotoPickerCardWithImage extends StatelessWidget {
+  const _PhotoPickerCardWithImage({
+    required this.imageBytes,
+    required this.onTap,
+    required this.onRemove,
+  });
 
+  final Uint8List? imageBytes;
   final VoidCallback onTap;
+  final VoidCallback onRemove;
 
   @override
   Widget build(BuildContext context) {
+    if (imageBytes != null) {
+      return Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: Image.memory(
+              imageBytes!,
+              width: double.infinity,
+              height: 160,
+              fit: BoxFit.cover,
+            ),
+          ),
+          Positioned(
+            top: 8,
+            right: 8,
+            child: GestureDetector(
+              onTap: onRemove,
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.5),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.close, color: Colors.white, size: 18),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+
     return InkWell(
       borderRadius: BorderRadius.circular(16),
       onTap: onTap,
@@ -193,7 +434,7 @@ class _PhotoPickerCard extends StatelessWidget {
             Icon(Icons.photo_camera_outlined, color: AppColors.textLight, size: 26),
             SizedBox(height: 8),
             Text(
-              'Tap to take photo',
+              'Tap to add photo',
               style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600),
             ),
           ],
@@ -237,9 +478,8 @@ class _SectionLabel extends StatelessWidget {
     return Text(
       text,
       style: const TextStyle(
-        fontSize: 11,
-        letterSpacing: 0.6,
-        fontWeight: FontWeight.w700,
+        fontSize: 12,
+        fontWeight: FontWeight.w600,
         color: AppColors.textLight,
       ),
     );
@@ -247,14 +487,16 @@ class _SectionLabel extends StatelessWidget {
 }
 
 class _TextInput extends StatelessWidget {
-  const _TextInput({required this.hint, this.prefixIcon});
+  const _TextInput({required this.hint, this.prefixIcon, this.controller});
 
   final String hint;
   final IconData? prefixIcon;
+  final TextEditingController? controller;
 
   @override
   Widget build(BuildContext context) {
     return TextField(
+      controller: controller,
       decoration: InputDecoration(
         hintText: hint,
         hintStyle: const TextStyle(color: Color(0xFFB8BFC7), fontWeight: FontWeight.w600),
@@ -376,4 +618,11 @@ String _formatDate(DateTime d) {
     'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
   ];
   return '${d.day} ${months[d.month - 1]} ${d.year}';
+}
+
+String _formatTime(TimeOfDay t) {
+  final hour = t.hourOfPeriod == 0 ? 12 : t.hourOfPeriod;
+  final minute = t.minute.toString().padLeft(2, '0');
+  final period = t.period == DayPeriod.am ? 'AM' : 'PM';
+  return '$hour:$minute $period';
 }
