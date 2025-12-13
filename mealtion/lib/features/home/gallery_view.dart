@@ -27,7 +27,51 @@ class GalleryView extends StatelessWidget {
       grouped.putIfAbsent(date, () => []);
       grouped[date]!.add(meal);
     }
-    return grouped;
+    
+    // Sort each date's meals by time (earliest first)
+    for (final date in grouped.keys) {
+      grouped[date]!.sort((a, b) {
+        final timeA = a['time'] as String? ?? '00:00';
+        final timeB = b['time'] as String? ?? '00:00';
+        return timeA.compareTo(timeB);
+      });
+    }
+    
+    // Sort dates (latest first) and return as LinkedHashMap to preserve order
+    final sortedDates = grouped.keys.toList()..sort((a, b) {
+      final dateA = _parseDate(a);
+      final dateB = _parseDate(b);
+      if (dateA == null || dateB == null) return 0;
+      return dateB.compareTo(dateA); // Latest first
+    });
+    
+    final sortedGrouped = <String, List<Map<String, dynamic>>>{};
+    for (final date in sortedDates) {
+      sortedGrouped[date] = grouped[date]!;
+    }
+    return sortedGrouped;
+  }
+
+  DateTime? _parseDate(String date) {
+    // Parse "13 Dec 2025" format
+    final parts = date.split(' ');
+    if (parts.length == 3) {
+      final day = int.tryParse(parts[0]);
+      final month = _monthFromShort(parts[1]);
+      final year = int.tryParse(parts[2]);
+      if (day != null && month != null && year != null) {
+        return DateTime(year, month, day);
+      }
+    }
+    return null;
+  }
+
+  int? _monthFromShort(String short) {
+    const months = {
+      'Jan': 1, 'Feb': 2, 'Mar': 3, 'Apr': 4, 'May': 5, 'Jun': 6,
+      'Jul': 7, 'Aug': 8, 'Sep': 9, 'Oct': 10, 'Nov': 11, 'Dec': 12,
+    };
+    return months[short];
   }
 
   @override
