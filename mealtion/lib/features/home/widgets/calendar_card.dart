@@ -214,9 +214,19 @@ String _monthYearLabel(DateTime d) {
 }
 
 DateTime _addMonths(DateTime d, int delta) {
-  final year = d.year + ((d.month - 1 + delta) ~/ 12);
-  final month = ((d.month - 1 + delta) % 12) + 1;
-  return DateTime(year, month, 1);
+  int newMonth = d.month + delta;
+  int newYear = d.year;
+  
+  while (newMonth > 12) {
+    newMonth -= 12;
+    newYear += 1;
+  }
+  while (newMonth < 1) {
+    newMonth += 12;
+    newYear -= 1;
+  }
+  
+  return DateTime(newYear, newMonth, 1);
 }
 
 // Build a 6-week grid (42 cells) starting from Sunday of the first week containing the 1st.
@@ -236,8 +246,9 @@ bool _isSameDay(DateTime a, DateTime b) {
 String _dayKey(DateTime d) => '${d.year}-${d.month}-${d.day}';
 
 // Map meals to day dots. Expects meal['date'] like "3 Dec 2025" and meal['mood'] like "green|yellow|red".
+// Max 3 dots per day, priority: red > yellow > green (show bad meals first)
 Map<String, List<Color>> _buildDotsByDay(List<Map<String, dynamic>> meals) {
-  final map = <String, List<Color>>{};
+  final map = <String, List<String>>{}; // Store mood strings first
   for (final m in meals) {
     final parsed = _parseMealDate(m['date'] as String?);
     if (parsed == null) continue;
@@ -246,10 +257,23 @@ Map<String, List<Color>> _buildDotsByDay(List<Map<String, dynamic>> meals) {
     map.putIfAbsent(key, () => []);
 
     final mood = (m['mood'] ?? '') as String;
-    final color = _moodToColor(mood);
-    if (color != null) map[key]!.add(color);
+    if (mood.isNotEmpty) map[key]!.add(mood);
   }
-  return map;
+
+  // Convert to colors with priority: red > yellow > green, max 3
+  final result = <String, List<Color>>{};
+  for (final entry in map.entries) {
+    final moods = entry.value;
+    // Sort by priority: red first, then yellow, then green
+    moods.sort((a, b) {
+      const priority = {'red': 0, 'yellow': 1, 'green': 2};
+      return (priority[a] ?? 3).compareTo(priority[b] ?? 3);
+    });
+    // Take max 3 and convert to colors
+    final colors = moods.take(3).map((m) => _moodToColor(m)).whereType<Color>().toList();
+    result[entry.key] = colors;
+  }
+  return result;
 }
 
 Color? _moodToColor(String mood) {

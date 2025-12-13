@@ -98,8 +98,56 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
         meal: meal,
         moodColor: moodColor,
         moodLabel: moodLabel,
+        onDelete: () async {
+          final appState = context.read<AppState>();
+          await appState.deleteMeal(meal['id']);
+        },
       ),
     );
+  }
+
+  Widget _buildPage(int index, List<Map<String, dynamic>> meals, List<Map<String, dynamic>> plans, AppState appState) {
+    switch (index) {
+      case 0:
+        return _HomeView(
+          key: const ValueKey(0),
+          meals: meals,
+          plans: plans,
+          onOpenMealDetail: openMealDetailModal,
+          moodColor: moodColor,
+          onRefresh: () async {
+            await Future.wait([
+              appState.loadMeals(),
+              appState.loadPlans(),
+            ]);
+          },
+        );
+      case 1:
+        return GalleryView(
+          key: const ValueKey(1),
+          meals: meals,
+          viewMode: galleryViewMode,
+          onChangeMode: (m) => setState(() => galleryViewMode = m),
+          onOpenMealDetail: openMealDetailModal,
+          moodColor: moodColor,
+          onDeleteMeal: (mealId) async {
+            await appState.deleteMeal(mealId);
+          },
+        );
+      case 2:
+        return PlanView(
+          key: const ValueKey(2),
+          plans: plans,
+          onNewPlan: openAddPlanModal,
+          onDeletePlan: (planId) async {
+            await appState.deletePlan(planId);
+          },
+        );
+      case 3:
+        return const SettingsView(key: ValueKey(3));
+      default:
+        return const SizedBox.shrink();
+    }
   }
 
   @override
@@ -116,37 +164,9 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
             bottom: false, // bottom nav already handled
             child: Padding(
               padding: const EdgeInsets.only(top: 60), // adjust top spacing
-              child: IndexedStack(
-                index: activeTab,
-                children: [
-                  _HomeView(
-                    meals: meals,
-                    plans: plans,
-                    onOpenMealDetail: openMealDetailModal,
-                    moodColor: moodColor,
-                    onRefresh: () async {
-                      await Future.wait([
-                        appState.loadMeals(),
-                        appState.loadPlans(),
-                      ]);
-                    },
-                  ),
-                  GalleryView(
-                    meals: meals,
-                    viewMode: galleryViewMode,
-                    onChangeMode: (m) => setState(() => galleryViewMode = m),
-                    onOpenMealDetail: openMealDetailModal,
-                    moodColor: moodColor,
-                  ),
-                  PlanView(
-                    plans: plans,
-                    onNewPlan: openAddPlanModal,
-                    onDeletePlan: (planId) async {
-                      await appState.deletePlan(planId);
-                    },
-                  ),
-                  const SettingsView(),
-                ],
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                child: _buildPage(activeTab, meals, plans, appState),
               ),
             ),
           ),
@@ -196,6 +216,7 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
 
 class _HomeView extends StatelessWidget {
   const _HomeView({
+    super.key,
     required this.meals,
     required this.plans,
     required this.onOpenMealDetail,
@@ -301,25 +322,14 @@ class _HomeView extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               if (todayPlan != null && (todayPlan['planItems'] as List?)?.isNotEmpty == true)
-                Container(
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-                  ),
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: (todayPlan['planItems'] as List)
-                        .map<Widget>(
-                          (item) => _SwipeableTodayPlanItem(
-                            item: item as Map<String, dynamic>,
-                            onDelete: () async {
-                              await appState.deletePlan(item['id'] as String);
-                            },
-                          ),
-                        )
-                        .toList(),
-                  ),
+                _TodayPlanCard(
+                  planItems: (todayPlan['planItems'] as List).cast<Map<String, dynamic>>(),
+                  onDelete: () async {
+                    final planItems = (todayPlan['planItems'] as List).cast<Map<String, dynamic>>();
+                    for (final item in planItems) {
+                      await appState.deletePlan(item['id'] as String);
+                    }
+                  },
                 )
               else
                 Container(
@@ -340,27 +350,25 @@ class _HomeView extends StatelessWidget {
               const SizedBox(height: 32),
 
               // Weekly Health Breakdown
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Weekly ',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.primary,
-                      ),
+              Row(
+                children: [
+                  Text(
+                    'Weekly ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
                     ),
-                    const TextSpan(
-                      text: 'Health Breakdown',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                        color: Color(0xFF6B7280),
-                      ),
+                  ),
+                  Text(
+                    'Health Breakdown',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
 
@@ -386,19 +394,25 @@ class _HomeView extends StatelessWidget {
 
               const SizedBox(height: 32),
 
-              RichText(
-                text: const TextSpan(
-                  children: [
-                    TextSpan(
-                      text: 'Your latest ',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF6B7280)),
+              Row(
+                children: [
+                  Text(
+                    'Your Latest ',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.textMain,
                     ),
-                    TextSpan(
-                      text: 'meal',
-                      style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppColors.primary),
+                  ),
+                  Text(
+                    'Meal',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: AppColors.primary,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
               const SizedBox(height: 12),
               if (meals.isEmpty)
@@ -438,152 +452,112 @@ class _HomeView extends StatelessWidget {
   }
 }
 
-class _SwipeableTodayPlanItem extends StatefulWidget {
-  const _SwipeableTodayPlanItem({
-    required this.item,
+class _TodayPlanCard extends StatefulWidget {
+  const _TodayPlanCard({
+    required this.planItems,
     required this.onDelete,
   });
 
-  final Map<String, dynamic> item;
+  final List<Map<String, dynamic>> planItems;
   final VoidCallback onDelete;
 
   @override
-  State<_SwipeableTodayPlanItem> createState() => _SwipeableTodayPlanItemState();
+  State<_TodayPlanCard> createState() => _TodayPlanCardState();
 }
 
-class _SwipeableTodayPlanItemState extends State<_SwipeableTodayPlanItem>
-    with SingleTickerProviderStateMixin {
+class _TodayPlanCardState extends State<_TodayPlanCard> {
   double _dragOffset = 0;
-  bool _isDeleting = false;
-  late AnimationController _animController;
-  late Animation<double> _fadeAnimation;
-  late Animation<double> _slideAnimation;
-
-  @override
-  void initState() {
-    super.initState();
-    _animController = AnimationController(
-      duration: const Duration(milliseconds: 300),
-      vsync: this,
-    );
-    _fadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
-    _slideAnimation = Tween<double>(begin: 0.0, end: -50.0).animate(
-      CurvedAnimation(parent: _animController, curve: Curves.easeOut),
-    );
-  }
-
-  @override
-  void dispose() {
-    _animController.dispose();
-    super.dispose();
-  }
-
-  void _handleCheck() async {
-    if (_isDeleting) return;
-    setState(() => _isDeleting = true);
-    
-    await _animController.forward();
-    widget.onDelete();
-  }
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _animController,
-      builder: (context, child) {
-        return Opacity(
-          opacity: _fadeAnimation.value,
-          child: Transform.translate(
-            offset: Offset(_slideAnimation.value, 0),
-            child: child,
-          ),
-        );
+    return GestureDetector(
+      onHorizontalDragUpdate: (details) {
+        setState(() {
+          _dragOffset += details.delta.dx;
+          _dragOffset = _dragOffset.clamp(-80.0, 0.0);
+        });
       },
-      child: GestureDetector(
-        onHorizontalDragUpdate: (details) {
-          if (_isDeleting) return;
-          setState(() {
-            _dragOffset += details.delta.dx;
-            _dragOffset = _dragOffset.clamp(-60.0, 0.0);
-          });
-        },
-        onHorizontalDragEnd: (details) {
-          if (_isDeleting) return;
-          setState(() {
-            if (_dragOffset < -40) {
-              _dragOffset = -60;
-            } else {
-              _dragOffset = 0;
-            }
-          });
-        },
-        child: Container(
-          margin: const EdgeInsets.only(bottom: 8),
-          child: Stack(
-            children: [
-              // Delete button background
-              Positioned.fill(
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    GestureDetector(
-                      onTap: _handleCheck,
-                      child: Container(
-                        width: 44,
-                        height: 44,
-                        margin: const EdgeInsets.only(right: 4),
-                        decoration: BoxDecoration(
-                          color: AppColors.red.withOpacity(0.15),
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.delete_outline,
-                          color: AppColors.red,
-                          size: 20,
-                        ),
+      onHorizontalDragEnd: (details) {
+        setState(() {
+          if (_dragOffset < -50) {
+            _dragOffset = -80;
+          } else {
+            _dragOffset = 0;
+          }
+        });
+      },
+      child: Stack(
+        children: [
+          // Delete button background (visible when swiped)
+          Positioned.fill(
+            child: Container(
+              decoration: BoxDecoration(
+                color: AppColors.red.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  GestureDetector(
+                    onTap: widget.onDelete,
+                    child: Container(
+                      width: 56,
+                      height: 56,
+                      margin: const EdgeInsets.only(right: 12),
+                      decoration: BoxDecoration(
+                        color: AppColors.red.withOpacity(0.15),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.red,
+                        size: 24,
                       ),
                     ),
-                  ],
-                ),
-              ),
-              // Main content
-              Transform.translate(
-                offset: Offset(_dragOffset, 0),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(vertical: 4),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: _handleCheck,
-                        child: Icon(
-                          Icons.check_circle_outline,
-                          size: 20,
-                          color: Colors.grey[300],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Text(
-                          widget.item['display'] as String? ?? '',
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: Color(0xFF6B7280),
+                ],
+              ),
+            ),
+          ),
+          // Main card content
+          Transform.translate(
+            offset: Offset(_dragOffset, 0),
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+              child: Column(
+                children: widget.planItems.map((item) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: Row(
+                      children: [
+                        Icon(Icons.circle, size: 8, color: Colors.grey[300]),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            item['title'] as String? ?? item['display'] as String? ?? '',
+                            style: const TextStyle(fontSize: 14, color: Color(0xFF6B7280)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
+                        if ((item['time'] as String?)?.isNotEmpty == true)
+                          Text(
+                            item['time'] as String,
+                            style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+                          ),
+                      ],
+                    ),
+                  );
+                }).toList(),
               ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

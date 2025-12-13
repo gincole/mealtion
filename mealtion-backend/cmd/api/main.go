@@ -36,8 +36,17 @@ func main() {
 	r.Handle("/meals", middleware.WithAuth(http.HandlerFunc(s.Meals))).
 		Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
 
+	r.Handle("/meals/{id}", middleware.WithAuth(http.HandlerFunc(s.DeleteMeal))).
+		Methods(http.MethodDelete, http.MethodOptions)
+
+	// Public image endpoint (meal images)
+	r.HandleFunc("/meals/{id}/image", s.MealImage).Methods(http.MethodGet)
+
 	r.Handle("/plans", middleware.WithAuth(http.HandlerFunc(s.Plans))).
 		Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
+
+	r.Handle("/plans/{id}", middleware.WithAuth(http.HandlerFunc(s.DeletePlan))).
+		Methods(http.MethodDelete, http.MethodOptions)
 
 	r.Handle("/auth/me", middleware.WithAuth(http.HandlerFunc(s.Me))).
 		Methods(http.MethodGet)

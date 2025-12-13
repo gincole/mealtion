@@ -7,14 +7,18 @@ class MealDetailModal extends StatelessWidget {
     required this.meal,
     required this.moodColor,
     required this.moodLabel,
+    required this.onDelete,
   });
 
   final Map<String, dynamic> meal;
   final Color Function(String) moodColor;
   final String Function(String) moodLabel;
+  final VoidCallback onDelete;
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = meal['img'] as String?;
+    
     return Dialog(
       backgroundColor: Colors.white,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
@@ -28,11 +32,28 @@ class MealDetailModal extends StatelessWidget {
                 SizedBox(
                   height: 220,
                   width: double.infinity,
-                  child: Image.network(meal['img'], fit: BoxFit.cover),
+                  child: imageUrl != null
+                      ? Image.network(
+                          imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            color: AppColors.bg,
+                            child: const Center(
+                              child: Icon(Icons.restaurant, color: AppColors.textLight, size: 60),
+                            ),
+                          ),
+                        )
+                      : Container(
+                          color: AppColors.bg,
+                          child: const Center(
+                            child: Icon(Icons.restaurant, color: AppColors.textLight, size: 60),
+                          ),
+                        ),
                 ),
+                // Type point on left
                 Positioned(
                   top: 12,
-                  right: 12,
+                  left: 12,
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                     decoration: BoxDecoration(
@@ -52,6 +73,29 @@ class MealDetailModal extends StatelessWidget {
                           style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w700, color: AppColors.textMain),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+                // Delete button on right
+                Positioned(
+                  top: 12,
+                  right: 12,
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                      onDelete();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(10),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.9),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.delete_outline,
+                        color: AppColors.red,
+                        size: 20,
+                      ),
                     ),
                   ),
                 ),

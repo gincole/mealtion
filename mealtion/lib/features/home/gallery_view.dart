@@ -10,6 +10,7 @@ class GalleryView extends StatelessWidget {
     required this.onChangeMode,
     required this.onOpenMealDetail,
     required this.moodColor,
+    required this.onDeleteMeal,
   });
 
   final List<Map<String, dynamic>> meals;
@@ -17,6 +18,7 @@ class GalleryView extends StatelessWidget {
   final void Function(String) onChangeMode;
   final void Function(Map<String, dynamic>) onOpenMealDetail;
   final Color Function(String) moodColor;
+  final void Function(String mealId) onDeleteMeal;
 
   Map<String, List<Map<String, dynamic>>> _groupMealsByDate() {
     final grouped = <String, List<Map<String, dynamic>>>{};
@@ -93,6 +95,7 @@ class GalleryView extends StatelessWidget {
                 groupedMeals: groupedMeals,
                 moodColor: moodColor,
                 onOpenMealDetail: onOpenMealDetail,
+                onDeleteMeal: onDeleteMeal,
               ),
           ],
         ),

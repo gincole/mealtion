@@ -7,11 +7,13 @@ class TimelineSection extends StatelessWidget {
     required this.groupedMeals,
     required this.moodColor,
     required this.onOpenMealDetail,
+    required this.onDeleteMeal,
   });
 
   final Map<String, List<Map<String, dynamic>>> groupedMeals;
   final Color Function(String) moodColor;
   final void Function(Map<String, dynamic>) onOpenMealDetail;
+  final void Function(String mealId) onDeleteMeal;
 
   @override
   Widget build(BuildContext context) {
@@ -35,10 +37,11 @@ class TimelineSection extends StatelessWidget {
               ),
               const SizedBox(height: 12),
               ...dayMeals.map(
-                (meal) => _TimelineItem(
+                (meal) => _SwipeableTimelineItem(
                   meal: meal,
                   moodColor: moodColor,
                   onTap: () => onOpenMealDetail(meal),
+                  onDelete: () => onDeleteMeal(meal['id'] as String),
                 ),
               ),
             ],
@@ -49,84 +52,158 @@ class TimelineSection extends StatelessWidget {
   }
 }
 
-class _TimelineItem extends StatelessWidget {
-  const _TimelineItem({
+class _SwipeableTimelineItem extends StatefulWidget {
+  const _SwipeableTimelineItem({
     required this.meal,
     required this.moodColor,
     required this.onTap,
+    required this.onDelete,
   });
 
   final Map<String, dynamic> meal;
   final Color Function(String) moodColor;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
+
+  @override
+  State<_SwipeableTimelineItem> createState() => _SwipeableTimelineItemState();
+}
+
+class _SwipeableTimelineItemState extends State<_SwipeableTimelineItem> {
+  double _dragOffset = 0;
 
   @override
   Widget build(BuildContext context) {
+    final imageUrl = widget.meal['img'] as String?;
+    
     return GestureDetector(
-      onTap: onTap,
+      onTap: widget.onTap,
+      onHorizontalDragUpdate: (details) {
+        setState(() {
+          _dragOffset += details.delta.dx;
+          _dragOffset = _dragOffset.clamp(-80.0, 0.0);
+        });
+      },
+      onHorizontalDragEnd: (details) {
+        setState(() {
+          if (_dragOffset < -50) {
+            _dragOffset = -80;
+          } else {
+            _dragOffset = 0;
+          }
+        });
+      },
       child: Container(
         height: 90,
         margin: const EdgeInsets.only(bottom: 12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(18),
-          boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-        ),
-        child: Row(
+        child: Stack(
           children: [
-            Container(
-              width: 90,
-              height: 90,
-              decoration: BoxDecoration(
-                borderRadius: const BorderRadius.only(
-                  topLeft: Radius.circular(18),
-                  bottomLeft: Radius.circular(18),
+            // Delete button background
+            Positioned.fill(
+              child: Container(
+                decoration: BoxDecoration(
+                  color: AppColors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(18),
                 ),
-                image: DecorationImage(
-                  image: NetworkImage(meal['img']),
-                  fit: BoxFit.cover,
-                ),
-              ),
-            ),
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
-                    Text(
-                      meal['title'],
-                      style: const TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.bold,
-                        color: AppColors.textMain,
+                    GestureDetector(
+                      onTap: widget.onDelete,
+                      child: Container(
+                        width: 56,
+                        height: 56,
+                        margin: const EdgeInsets.only(right: 12),
+                        decoration: BoxDecoration(
+                          color: AppColors.red.withOpacity(0.15),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(
+                          Icons.delete_outline,
+                          color: AppColors.red,
+                          size: 24,
+                        ),
                       ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${meal['time']} • ${meal['location']}',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: AppColors.textLight,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ),
               ),
             ),
-            Container(
-              width: 8,
-              height: double.infinity,
-              decoration: BoxDecoration(
-                color: moodColor(meal['mood']),
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(18),
-                  bottomRight: Radius.circular(18),
+            // Main card
+            Transform.translate(
+              offset: Offset(_dragOffset, 0),
+              child: Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 90,
+                      height: 90,
+                      decoration: BoxDecoration(
+                        borderRadius: const BorderRadius.only(
+                          topLeft: Radius.circular(18),
+                          bottomLeft: Radius.circular(18),
+                        ),
+                        color: imageUrl == null ? AppColors.bg : null,
+                        image: imageUrl != null
+                            ? DecorationImage(
+                                image: NetworkImage(imageUrl),
+                                fit: BoxFit.cover,
+                                onError: (_, __) {},
+                              )
+                            : null,
+                      ),
+                      child: imageUrl == null
+                          ? const Center(child: Icon(Icons.restaurant, color: AppColors.textLight))
+                          : null,
+                    ),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              widget.meal['title'] ?? '',
+                              style: const TextStyle(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: AppColors.textMain,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              '${widget.meal['time']} • ${widget.meal['location']}',
+                              style: const TextStyle(
+                                fontSize: 12,
+                                color: AppColors.textLight,
+                                fontWeight: FontWeight.w500,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    Container(
+                      width: 8,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color: widget.moodColor(widget.meal['mood']),
+                        borderRadius: const BorderRadius.only(
+                          topRight: Radius.circular(18),
+                          bottomRight: Radius.circular(18),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

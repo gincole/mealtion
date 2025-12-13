@@ -160,6 +160,17 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Delete a meal by ID
+  Future<void> deleteMeal(String mealId) async {
+    try {
+      await mealService.deleteMeal(mealId);
+      _meals.removeWhere((m) => m.id == mealId);
+      notifyListeners();
+    } catch (e) {
+      rethrow;
+    }
+  }
+
   /// Get meals as widget-compatible maps
   List<Map<String, dynamic>> get mealsForWidgets {
     return _meals.map((m) => m.toWidgetMap()).toList();

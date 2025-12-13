@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../app/colors.dart';
+import '../../app/app_state.dart';
 import 'widgets/settings_item.dart';
 
 class SettingsView extends StatelessWidget {
@@ -7,6 +9,9 @@ class SettingsView extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final appState = context.watch<AppState>();
+    final user = appState.user;
+
     return SingleChildScrollView(
       padding: const EdgeInsets.only(bottom: 100, top: 16),
       child: Padding(
@@ -33,23 +38,34 @@ class SettingsView extends StatelessWidget {
                   Container(
                     width: 48,
                     height: 48,
-                    decoration: const BoxDecoration(
+                    decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      image: DecorationImage(
-                        image: NetworkImage(
-                          'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&q=80&w=100',
+                      color: AppColors.primary.withOpacity(0.2),
+                    ),
+                    child: Center(
+                      child: Text(
+                        user?.name.isNotEmpty == true ? user!.name[0].toUpperCase() : '?',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.primary,
                         ),
-                        fit: BoxFit.cover,
                       ),
                     ),
                   ),
                   const SizedBox(width: 12),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: const [
-                      Text('Gincole', style: TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain)),
-                      SizedBox(height: 4),
-                      Text('gincole@email.com', style: TextStyle(fontSize: 12, color: AppColors.textLight)),
+                    children: [
+                      Text(
+                        user?.name ?? 'Unknown',
+                        style: const TextStyle(fontWeight: FontWeight.bold, color: AppColors.textMain),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        user?.email ?? '',
+                        style: const TextStyle(fontSize: 12, color: AppColors.textLight),
+                      ),
                     ],
                   ),
                 ],
@@ -59,7 +75,34 @@ class SettingsView extends StatelessWidget {
             const SizedBox(height: 16),
             SettingsItem(icon: Icons.person, title: 'Account'),
             SettingsItem(icon: Icons.lock, title: 'Privacy'),
-            SettingsItem(icon: Icons.logout, title: 'Log out'),
+            SettingsItem(
+              icon: Icons.logout,
+              title: 'Log out',
+              onTap: () async {
+                final confirmed = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Log out'),
+                    content: const Text('Are you sure you want to log out?'),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: const Text('Cancel'),
+                      ),
+                      FilledButton(
+                        style: FilledButton.styleFrom(backgroundColor: AppColors.primary),
+                        onPressed: () => Navigator.pop(ctx, true),
+                        child: const Text('Log out'),
+                      ),
+                    ],
+                  ),
+                );
+
+                if (confirmed == true) {
+                  await context.read<AppState>().logout();
+                }
+              },
+            ),
           ],
         ),
       ),
