@@ -25,6 +25,33 @@ class MealtionApp extends StatelessWidget {
       title: 'Mealtion',
       debugShowCheckedModeBanner: false,
       theme: buildMealtionTheme(),
+      // Use builder to constrain the app view on wide screens (desktop/web)
+      builder: (context, child) {
+        return Scaffold(
+          // Background color for the outer desktop area
+          backgroundColor: Colors.grey[200],
+          body: Center(
+            child: Container(
+              // Constrain width to simulate mobile device
+              constraints: const BoxConstraints(maxWidth: 480),
+              // Clip content to match the border radius
+              clipBehavior: Clip.hardEdge,
+              decoration: BoxDecoration(
+                // Rounded corners matching the wireframe
+                borderRadius: BorderRadius.circular(30),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black12,
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: child,
+            ),
+          ),
+        );
+      },
       home: const AuthWrapper(),
     );
   }
@@ -48,7 +75,7 @@ class _AuthWrapperState extends State<AuthWrapper> with SingleTickerProviderStat
   void initState() {
     super.initState();
     
-    // Splash animation
+    // Splash animation setup
     _splashController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
