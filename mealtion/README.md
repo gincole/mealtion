@@ -1,6 +1,6 @@
 # mealtion
 
-A new Flutter project.
+Track your meals, your way.
 
 ## Getting Started
 
