@@ -37,8 +37,14 @@ class MealCard extends StatelessWidget {
                   children: [
                     Positioned.fill(
                       child: Image.network(
-                        meal['img'],
+                        meal['img'] ?? 'https://via.placeholder.com/400x300?text=No+Image',
                         fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) => Container(
+                          color: AppColors.bg,
+                          child: const Center(
+                            child: Icon(Icons.restaurant, color: AppColors.textLight, size: 40),
+                          ),
+                        ),
                       ),
                     ),
                     Positioned(
@@ -57,8 +63,8 @@ class MealCard extends StatelessWidget {
                         ),
                         child: Center(
                           child: Container(
-                            width: 12,
-                            height: 12,
+                            width: 16,
+                            height: 16,
                             decoration: BoxDecoration(
                               shape: BoxShape.circle,
                               color: moodColor(meal['mood']),
@@ -74,9 +80,10 @@ class MealCard extends StatelessWidget {
               // Text section uses Expanded to avoid overflow
               Expanded(
                 child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  padding: const EdgeInsets.fromLTRB(12, 8, 12, 8),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
                         '${meal['date']} • ${meal['time']}',
@@ -88,7 +95,7 @@ class MealCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const SizedBox(height: 4),
                       Text(
                         meal['title'],
                         style: const TextStyle(
@@ -99,7 +106,7 @@ class MealCard extends StatelessWidget {
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
-                      const SizedBox(height: 6),
+                      const Spacer(),
                       Row(
                         children: [
                           const Icon(Icons.location_on, size: 12, color: AppColors.textLight),

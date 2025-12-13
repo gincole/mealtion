@@ -66,7 +66,24 @@ class GalleryView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            if (viewMode == 'grid')
+            if (meals.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  border: Border.all(color: Colors.grey[200]!, width: 2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    'No meals yet. Tap + to add your first meal!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: AppColors.textLight),
+                  ),
+                ),
+              )
+            else if (viewMode == 'grid')
               _GridSection(
                 meals: meals,
                 onOpenMealDetail: onOpenMealDetail,
@@ -137,18 +154,24 @@ class _GridSection extends StatelessWidget {
       ),
       itemBuilder: (_, i) {
         final meal = meals[i];
+        final imageUrl = meal['img'] as String?;
         return GestureDetector(
           onTap: () => onOpenMealDetail(meal),
           child: Container(
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: imageUrl != null ? Colors.white : AppColors.bg,
               borderRadius: BorderRadius.circular(18),
               boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-              image: DecorationImage(
-                image: NetworkImage(meal['img']),
-                fit: BoxFit.cover,
-              ),
+              image: imageUrl != null
+                  ? DecorationImage(
+                      image: NetworkImage(imageUrl),
+                      fit: BoxFit.cover,
+                    )
+                  : null,
             ),
+            child: imageUrl == null
+                ? const Center(child: Icon(Icons.restaurant, color: AppColors.textLight))
+                : null,
           ),
         );
       },

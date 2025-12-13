@@ -7,10 +7,12 @@ class PlanView extends StatelessWidget {
     super.key,
     required this.plans,
     required this.onNewPlan,
+    required this.onDeletePlan,
   });
 
   final List<Map<String, dynamic>> plans;
   final VoidCallback onNewPlan;
+  final void Function(String planId) onDeletePlan;
 
   @override
   Widget build(BuildContext context) {
@@ -46,7 +48,28 @@ class PlanView extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 16),
-            ...plans.map((p) => PlanCard(plan: p)).toList(),
+            if (plans.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(32),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.5),
+                  border: Border.all(color: Colors.grey[200]!, width: 2),
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Center(
+                  child: Text(
+                    'No plans yet. Tap New to create your first plan!',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(fontSize: 14, color: AppColors.textLight),
+                  ),
+                ),
+              )
+            else
+              ...plans.map((p) => PlanCard(
+                plan: p,
+                onDeletePlan: onDeletePlan,
+              )).toList(),
           ],
         ),
       ),
