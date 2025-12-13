@@ -14,7 +14,7 @@ class ApiClient {
   // Change this to your backend URL
   // For Android emulator: 10.0.2.2:8080
   // For iOS simulator / web: localhost:8080
-  static const String baseUrl = 'http://localhost:8080';
+  static const String baseUrl = 'https://mealtion-backend.onrender.com';
 
   final AuthStorage _authStorage = AuthStorage();
 
