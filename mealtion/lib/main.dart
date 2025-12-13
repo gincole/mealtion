@@ -25,27 +25,30 @@ class MealtionApp extends StatelessWidget {
       title: 'Mealtion',
       debugShowCheckedModeBanner: false,
       theme: buildMealtionTheme(),
-      // Builder to handle the phone frame layout
       builder: (context, child) {
+        // Get current screen width
+        final screenWidth = MediaQuery.of(context).size.width;
+
+        // CHECK: Is it a mobile device? (width less than 600px)
+        if (screenWidth < 600) {
+          // If mobile: Return the app directly (Full Screen)
+          return child!;
+        }
+
+        // If desktop/tablet: Show the Phone Frame wrapper
         return Scaffold(
-          // Grey background for the browser/desktop area
+          // Grey background for desktop area
           backgroundColor: Colors.grey[200],
           body: Center(
-            // 1. Add margin so the phone never touches the browser edges
             child: Padding(
               padding: const EdgeInsets.symmetric(vertical: 20.0, horizontal: 20.0),
-              
-              // 2. FittedBox scales the child down if the screen is too small
-              // avoiding distortion/squeezing while keeping aspect ratio.
+              // Scale the phone frame to fit the screen without distortion
               child: FittedBox(
                 fit: BoxFit.contain,
-                
-                // 3. Define the ideal logical size of the phone (iPhone 14)
                 child: SizedBox(
-                  width: 390, 
-                  height: 844, 
+                  width: 390, // Fixed width (iPhone 14)
+                  height: 844, // Fixed height (iPhone 14)
                   child: Container(
-                    // 4. Decoration (Shadow and Rounded Corners)
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(40),
@@ -57,7 +60,7 @@ class MealtionApp extends StatelessWidget {
                         ),
                       ],
                     ),
-                    // 5. Clip the app content to the rounded corners
+                    // Clip content to rounded corners
                     clipBehavior: Clip.hardEdge,
                     child: child,
                   ),
@@ -89,25 +92,17 @@ class _AuthWrapperState extends State<AuthWrapper> with SingleTickerProviderStat
   @override
   void initState() {
     super.initState();
-    
-    // Splash animation setup
     _splashController = AnimationController(
       duration: const Duration(milliseconds: 800),
       vsync: this,
     );
-    
     _fadeAnimation = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(parent: _splashController, curve: Curves.easeOut),
     );
-    
     _scaleAnimation = Tween<double>(begin: 0.8, end: 1.0).animate(
       CurvedAnimation(parent: _splashController, curve: Curves.easeOutBack),
     );
-    
-    // Start animation
     _splashController.forward();
-    
-    // Show splash for 2.5 seconds on app open, then hide
     Future.delayed(const Duration(milliseconds: 2500), () {
       if (mounted) setState(() => _showSplash = false);
     });
@@ -121,7 +116,6 @@ class _AuthWrapperState extends State<AuthWrapper> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    // Show splash screen once on app open
     if (_showSplash) {
       return Scaffold(
         backgroundColor: AppColors.primary,
@@ -137,7 +131,6 @@ class _AuthWrapperState extends State<AuthWrapper> with SingleTickerProviderStat
                 ),
               );
             },
-            // Use logo from theme.dart
             child: const MealtionLogo(height: 40, variant: 'white'),
           ),
         ),
@@ -150,31 +143,19 @@ class _AuthWrapperState extends State<AuthWrapper> with SingleTickerProviderStat
           case AppAuthState.loading:
             return Scaffold(
               backgroundColor: AppColors.bg,
-              body: Center(
-                child: CircularProgressIndicator(color: AppColors.primary),
-              ),
+              body: Center(child: CircularProgressIndicator(color: AppColors.primary)),
             );
-
           case AppAuthState.unauthenticated:
             if (_showRegister) {
               return RegisterPage(
-                onRegisterSuccess: () {
-                  context.read<AppState>().onAuthenticated();
-                },
-                onGoToLogin: () {
-                  setState(() => _showRegister = false);
-                },
+                onRegisterSuccess: () => context.read<AppState>().onAuthenticated(),
+                onGoToLogin: () => setState(() => _showRegister = false),
               );
             }
             return LoginPage(
-              onLoginSuccess: () {
-                context.read<AppState>().onAuthenticated();
-              },
-              onGoToRegister: () {
-                setState(() => _showRegister = true);
-              },
+              onLoginSuccess: () => context.read<AppState>().onAuthenticated(),
+              onGoToRegister: () => setState(() => _showRegister = true),
             );
-
           case AppAuthState.authenticated:
             return const MealtionHomePage();
         }
