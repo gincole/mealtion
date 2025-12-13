@@ -203,7 +203,6 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
 
 class _HomeView extends StatelessWidget {
   const _HomeView({
-    super.key,
     required this.meals,
     required this.plans,
     required this.onOpenMealDetail,
@@ -373,9 +372,10 @@ class _HomeView extends StatelessWidget {
                   ],
                 ),
                 child: HealthBreakdownBar(
-                  healthyRatio: breakdown['healthy'] ?? 0.33,
-                  moderateRatio: breakdown['moderate'] ?? 0.34,
-                  heavyRatio: breakdown['heavy'] ?? 0.33,
+                  healthyRatio: breakdown['healthy'] ?? 0.0,
+                  moderateRatio: breakdown['moderate'] ?? 0.0,
+                  heavyRatio: breakdown['heavy'] ?? 0.0,
+                  isEmpty: breakdown['empty'] == 1.0,
                 ),
               ),
 

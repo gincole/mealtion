@@ -93,26 +93,42 @@ class _AddMealModalState extends State<AddMealModal> {
   void _showImageSourceDialog() {
     showModalBottomSheet(
       context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
       builder: (ctx) => SafeArea(
-        child: Wrap(
-          children: [
-            ListTile(
-              leading: const Icon(Icons.camera_alt),
-              title: const Text('Take a photo'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImage(ImageSource.camera);
-              },
-            ),
-            ListTile(
-              leading: const Icon(Icons.photo_library),
-              title: const Text('Choose from gallery'),
-              onTap: () {
-                Navigator.pop(ctx);
-                _pickImage(ImageSource.gallery);
-              },
-            ),
-          ],
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(20, 20, 20, 48),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(Icons.camera_alt, color: Colors.grey[400]),
+                title: Text(
+                  'Take a photo',
+                  style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.camera);
+                },
+              ),
+              ListTile(
+                contentPadding: const EdgeInsets.symmetric(horizontal: 8),
+                leading: Icon(Icons.photo_library, color: Colors.grey[400]),
+                title: Text(
+                  'Choose from gallery',
+                  style: TextStyle(color: Colors.grey[600], fontWeight: FontWeight.w500),
+                ),
+                onTap: () {
+                  Navigator.pop(ctx);
+                  _pickImage(ImageSource.gallery);
+                },
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -430,12 +446,12 @@ class _PhotoPickerCardWithImage extends StatelessWidget {
         ),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: const [
-            Icon(Icons.photo_camera_outlined, color: AppColors.textLight, size: 26),
-            SizedBox(height: 8),
+          children: [
+            Icon(Icons.photo_camera_outlined, color: Colors.grey[400], size: 26),
+            const SizedBox(height: 8),
             Text(
               'Tap to add photo',
-              style: TextStyle(fontSize: 12, color: AppColors.textLight, fontWeight: FontWeight.w600),
+              style: TextStyle(fontSize: 12, color: Colors.grey[400], fontWeight: FontWeight.w500),
             ),
           ],
         ),

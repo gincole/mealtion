@@ -7,15 +7,55 @@ class HealthBreakdownBar extends StatelessWidget {
     this.healthyRatio = 0.50,
     this.moderateRatio = 0.25,
     this.heavyRatio = 0.25,
+    this.isEmpty = false,
   });
 
   // Adjust the ratios here (should sum to 1.0)
   final double healthyRatio;   // e.g. 0.50 = 50%
   final double moderateRatio;  // e.g. 0.25 = 25%
   final double heavyRatio;     // e.g. 0.25 = 25%
+  final bool isEmpty;
 
   @override
   Widget build(BuildContext context) {
+    // Show gray empty bar when no meals
+    if (isEmpty) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            height: 18,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 8),
+              ],
+            ),
+            child: Center(
+              child: Text(
+                'No meals this week',
+                style: TextStyle(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.grey[400],
+                ),
+              ),
+            ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: const [
+              _Legend(text: 'Heavy'),
+              _Legend(text: 'Moderate'),
+              _Legend(text: 'Healthy'),
+            ],
+          ),
+        ],
+      );
+    }
+
     int flexFrom(double r) => (r * 100).round().clamp(1, 100);
 
     final healthyFlex = flexFrom(healthyRatio);

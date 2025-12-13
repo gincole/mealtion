@@ -283,7 +283,7 @@ class AppState extends ChangeNotifier {
     }).toList();
 
     if (weekMeals.isEmpty) {
-      return {'healthy': 0.33, 'moderate': 0.34, 'heavy': 0.33};
+      return {'healthy': 0.0, 'moderate': 0.0, 'heavy': 0.0, 'empty': 1.0};
     }
 
     int green = 0, yellow = 0, red = 0;
@@ -303,9 +303,10 @@ class AppState extends ChangeNotifier {
 
     final total = green + yellow + red;
     return {
-      'healthy': total > 0 ? green / total : 0.33,
-      'moderate': total > 0 ? yellow / total : 0.34,
-      'heavy': total > 0 ? red / total : 0.33,
+      'healthy': total > 0 ? green / total : 0.0,
+      'moderate': total > 0 ? yellow / total : 0.0,
+      'heavy': total > 0 ? red / total : 0.0,
+      'empty': 0.0,
     };
   }
 
