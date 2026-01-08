@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 
 	"mealtion-backend/internal/middleware"
@@ -31,10 +32,26 @@ func (s *Server) Meals(w http.ResponseWriter, r *http.Request) {
 
 	switch r.Method {
 	case http.MethodGet:
+		// Parse pagination parameters
+		limit := int64(50) // default limit
+		offset := int64(0) // default offset
+		
+		if limitStr := r.URL.Query().Get("limit"); limitStr != "" {
+			if parsed, err := strconv.ParseInt(limitStr, 10, 64); err == nil && parsed > 0 && parsed <= 100 {
+				limit = parsed
+			}
+		}
+		
+		if offsetStr := r.URL.Query().Get("offset"); offsetStr != "" {
+			if parsed, err := strconv.ParseInt(offsetStr, 10, 64); err == nil && parsed >= 0 {
+				offset = parsed
+			}
+		}
+		
 		cur, err := s.MealsCol.Find(
 			r.Context(),
 			bson.M{"userId": uid}, // only this user's meals
-			options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(50),
+			options.Find().SetSort(bson.D{{Key: "createdAt", Value: -1}}).SetLimit(limit).SetSkip(offset),
 		)
 		if err != nil {
 			http.Error(w, err.Error(), 500)

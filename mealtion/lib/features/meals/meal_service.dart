@@ -62,8 +62,8 @@ class Meal {
 class MealService {
   final ApiClient _api = ApiClient();
 
-  Future<List<Meal>> getMeals() async {
-    final response = await _api.get('/meals');
+  Future<List<Meal>> getMeals({int limit = 50, int offset = 0}) async {
+    final response = await _api.get('/meals?limit=$limit&offset=$offset');
     final items = (response['items'] as List?) ?? [];
     return items.map((item) => Meal.fromJson(item)).toList();
   }

@@ -14,6 +14,9 @@ class AppState extends ChangeNotifier {
 
   List<Meal> _meals = [];
   List<Meal> get meals => _meals;
+  
+  bool _hasMoreMeals = true;
+  bool get hasMoreMeals => _hasMoreMeals;
 
   List<Plan> _plans = [];
   List<Plan> get plans => _plans;
@@ -63,18 +66,46 @@ class AppState extends ChangeNotifier {
     _user = null;
     _meals = [];
     _plans = [];
+    _hasMoreMeals = true;
     _authState = AppAuthState.unauthenticated;
     notifyListeners();
   }
 
-  /// Load meals from API
+  /// Load meals from API (resets the list)
   Future<void> loadMeals() async {
     _loadingMeals = true;
     _error = null;
     notifyListeners();
 
     try {
-      _meals = await mealService.getMeals();
+      _meals = await mealService.getMeals(limit: 50, offset: 0);
+      _hasMoreMeals = _meals.length >= 50;
+    } catch (e) {
+      _error = e.toString();
+    } finally {
+      _loadingMeals = false;
+      notifyListeners();
+    }
+  }
+
+  /// Load more meals for infinite scroll
+  Future<void> loadMoreMeals() async {
+    if (_loadingMeals || !_hasMoreMeals) return;
+
+    _loadingMeals = true;
+    notifyListeners();
+
+    try {
+      final newMeals = await mealService.getMeals(
+        limit: 50,
+        offset: _meals.length,
+      );
+      
+      if (newMeals.isEmpty || newMeals.length < 50) {
+        _hasMoreMeals = false;
+      }
+      
+      _meals.addAll(newMeals);
     } catch (e) {
       _error = e.toString();
     } finally {

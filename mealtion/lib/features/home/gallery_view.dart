@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import '../../app/colors.dart';
+import '../../app/app_state.dart';
 import 'widgets/timeline.dart';
 
-class GalleryView extends StatelessWidget {
+class GalleryView extends StatefulWidget {
   const GalleryView({
     super.key,
     required this.meals,
@@ -20,9 +22,39 @@ class GalleryView extends StatelessWidget {
   final Color Function(String) moodColor;
   final void Function(String mealId) onDeleteMeal;
 
+  @override
+  State<GalleryView> createState() => _GalleryViewState();
+}
+
+class _GalleryViewState extends State<GalleryView> {
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_onScroll);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      // Load more when user is 200px from bottom
+      final appState = context.read<AppState>();
+      if (appState.hasMoreMeals && !appState.loadingMeals) {
+        appState.loadMoreMeals();
+      }
+    }
+  }
+
   Map<String, List<Map<String, dynamic>>> _groupMealsByDate() {
     final grouped = <String, List<Map<String, dynamic>>>{};
-    for (final meal in meals) {
+    for (final meal in widget.meals) {
       final date = meal['date'] as String;
       grouped.putIfAbsent(date, () => []);
       grouped[date]!.add(meal);
@@ -77,8 +109,11 @@ class GalleryView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final groupedMeals = _groupMealsByDate();
+    final appState = context.watch<AppState>();
+    final isLoadingMore = appState.loadingMeals && widget.meals.isNotEmpty;
 
     return SingleChildScrollView(
+      controller: _scrollController,
       padding: const EdgeInsets.only(bottom: 100, top: 16),
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -97,14 +132,14 @@ class GalleryView extends StatelessWidget {
                   children: [
                     _ModeButton(
                       label: 'Timeline',
-                      active: viewMode == 'calendar',
-                      onTap: () => onChangeMode('calendar'),
+                      active: widget.viewMode == 'calendar',
+                      onTap: () => widget.onChangeMode('calendar'),
                     ),
                     const SizedBox(width: 8),
                     _ModeButton(
                       label: 'Grid',
-                      active: viewMode == 'grid',
-                      onTap: () => onChangeMode('grid'),
+                      active: widget.viewMode == 'grid',
+                      onTap: () => widget.onChangeMode('grid'),
                     ),
                   ],
                 ),
@@ -112,7 +147,7 @@ class GalleryView extends StatelessWidget {
             ),
             const SizedBox(height: 16),
 
-            if (meals.isEmpty)
+            if (widget.meals.isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(32),
@@ -129,17 +164,29 @@ class GalleryView extends StatelessWidget {
                   ),
                 ),
               )
-            else if (viewMode == 'grid')
+            else if (widget.viewMode == 'grid')
               _GridSection(
-                meals: meals,
-                onOpenMealDetail: onOpenMealDetail,
+                meals: widget.meals,
+                onOpenMealDetail: widget.onOpenMealDetail,
               )
             else
               TimelineSection(
                 groupedMeals: groupedMeals,
-                moodColor: moodColor,
-                onOpenMealDetail: onOpenMealDetail,
-                onDeleteMeal: onDeleteMeal,
+                moodColor: widget.moodColor,
+                onOpenMealDetail: widget.onOpenMealDetail,
+                onDeleteMeal: widget.onDeleteMeal,
+              ),
+            
+            // Loading indicator at bottom when loading more
+            if (isLoadingMore)
+              const Padding(
+                padding: EdgeInsets.all(16.0),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                    strokeWidth: 2,
+                  ),
+                ),
               ),
           ],
         ),
