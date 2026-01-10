@@ -15,7 +15,14 @@ class CalendarCard extends StatefulWidget {
 }
 
 class _CalendarCardState extends State<CalendarCard> {
-  DateTime _focusedMonth = DateTime(2025, 12, 1);
+  late DateTime _focusedMonth;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _focusedMonth = DateTime(now.year, now.month, 1);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -179,20 +186,22 @@ class _DayCell extends StatelessWidget {
 
     return Column(
       mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min,
       children: [
         Text('${day.day}', style: dayTextStyle),
-        const SizedBox(height: 6),
+        const SizedBox(height: 2),
 
         // Up to 3 dots under the day number
         SizedBox(
-          height: 10,
+          height: 8,
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
+            mainAxisSize: MainAxisSize.min,
             children: dots.take(3).map((c) {
               return Container(
-                width: 6,
-                height: 6,
-                margin: const EdgeInsets.symmetric(horizontal: 2),
+                width: 5,
+                height: 5,
+                margin: const EdgeInsets.symmetric(horizontal: 1),
                 decoration: BoxDecoration(color: c, shape: BoxShape.circle),
               );
             }).toList(),

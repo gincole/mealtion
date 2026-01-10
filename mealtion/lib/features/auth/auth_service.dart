@@ -32,10 +32,14 @@ class AuthService {
 
     // Set up callbacks for token refresh events
     _api.onTokenRefreshed = (accessToken, refreshToken, userData) async {
+      final userId = userData['id']?.toString() ?? '';
+      final userEmail = userData['email']?.toString() ?? '';
+      final userName = userData['name']?.toString() ?? '';
+      
       await _storage.saveUser(
-        id: userData['id'],
-        email: userData['email'],
-        name: userData['name'],
+        id: userId,
+        email: userEmail,
+        name: userName,
       );
       _currentUser = User.fromJson(userData);
     };
@@ -57,9 +61,13 @@ class AuthService {
       'password': password,
     }, auth: false);
 
-    final accessToken = response['accessToken'] as String;
-    final refreshToken = response['refreshToken'] as String;
-    final userData = response['user'] as Map<String, dynamic>;
+    final accessToken = response['accessToken'] as String?;
+    final refreshToken = response['refreshToken'] as String?;
+    final userData = response['user'] as Map<String, dynamic>?;
+
+    if (accessToken == null || refreshToken == null || userData == null) {
+      throw Exception('Invalid register response from server');
+    }
 
     // Save both tokens
     await _storage.saveTokens(
@@ -68,10 +76,14 @@ class AuthService {
     );
     _api.setAccessToken(accessToken);
 
+    final userId = userData['id']?.toString() ?? '';
+    final userEmail = userData['email']?.toString() ?? '';
+    final userName = userData['name']?.toString() ?? '';
+
     await _storage.saveUser(
-      id: userData['id'],
-      email: userData['email'],
-      name: userData['name'],
+      id: userId,
+      email: userEmail,
+      name: userName,
     );
 
     _currentUser = User.fromJson(userData);
@@ -84,9 +96,13 @@ class AuthService {
       'password': password,
     }, auth: false);
 
-    final accessToken = response['accessToken'] as String;
-    final refreshToken = response['refreshToken'] as String;
-    final userData = response['user'] as Map<String, dynamic>;
+    final accessToken = response['accessToken'] as String?;
+    final refreshToken = response['refreshToken'] as String?;
+    final userData = response['user'] as Map<String, dynamic>?;
+
+    if (accessToken == null || refreshToken == null || userData == null) {
+      throw Exception('Invalid login response from server');
+    }
 
     // Save both tokens
     await _storage.saveTokens(
@@ -95,10 +111,14 @@ class AuthService {
     );
     _api.setAccessToken(accessToken);
 
+    final userId = userData['id']?.toString() ?? '';
+    final userEmail = userData['email']?.toString() ?? '';
+    final userName = userData['name']?.toString() ?? '';
+
     await _storage.saveUser(
-      id: userData['id'],
-      email: userData['email'],
-      name: userData['name'],
+      id: userId,
+      email: userEmail,
+      name: userName,
     );
 
     _currentUser = User.fromJson(userData);
@@ -123,12 +143,21 @@ class AuthService {
 
       // Get user info from /auth/me endpoint
       final response = await _api.get('/auth/me');
-      final userData = response['user'] as Map<String, dynamic>;
+      final userData = response['user'] as Map<String, dynamic>?;
+      
+      if (userData == null) {
+        await _storage.clear();
+        return null;
+      }
+
+      final userId = userData['id']?.toString() ?? '';
+      final userEmail = userData['email']?.toString() ?? '';
+      final userName = userData['name']?.toString() ?? '';
 
       await _storage.saveUser(
-        id: userData['id'],
-        email: userData['email'],
-        name: userData['name'],
+        id: userId,
+        email: userEmail,
+        name: userName,
       );
 
       _currentUser = User.fromJson(userData);

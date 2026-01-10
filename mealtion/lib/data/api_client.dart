@@ -22,6 +22,11 @@ typedef TokenRefreshCallback =
 typedef RefreshFailedCallback = void Function();
 
 class ApiClient {
+  // Singleton pattern - all services share the same ApiClient instance
+  static final ApiClient _instance = ApiClient._internal();
+  factory ApiClient() => _instance;
+  ApiClient._internal();
+
   // Change this to your backend URL
   // For Android emulator: 10.0.2.2:8080
   // For iOS simulator / web: localhost:8080
@@ -151,9 +156,16 @@ class ApiClient {
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final newAccessToken = data['accessToken'] as String;
-        final newRefreshToken = data['refreshToken'] as String;
-        final userData = data['user'] as Map<String, dynamic>;
+        final newAccessToken = data['accessToken'] as String?;
+        final newRefreshToken = data['refreshToken'] as String?;
+        final userData = data['user'] as Map<String, dynamic>?;
+
+        if (newAccessToken == null || newRefreshToken == null || userData == null) {
+          await _authStorage.clear();
+          _accessToken = null;
+          onRefreshFailed?.call();
+          return false;
+        }
 
         // Update tokens
         _accessToken = newAccessToken;

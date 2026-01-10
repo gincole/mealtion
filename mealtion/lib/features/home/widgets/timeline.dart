@@ -166,6 +166,8 @@ class _SwipeableTimelineItemState extends State<_SwipeableTimelineItem> {
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
                           children: [
                             Text(
                               widget.meal['title'] ?? '',
@@ -177,7 +179,7 @@ class _SwipeableTimelineItemState extends State<_SwipeableTimelineItem> {
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                             ),
-                            const SizedBox(height: 6),
+                            const SizedBox(height: 4),
                             Text(
                               '${widget.meal['time']} • ${widget.meal['location']}',
                               style: const TextStyle(
