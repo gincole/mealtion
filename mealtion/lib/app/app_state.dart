@@ -48,6 +48,9 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Initialize auth service first (loads stored tokens into API client)
+      await authService.init();
+      
       final user = await authService.tryAutoLogin();
       if (user != null) {
         _user = user;

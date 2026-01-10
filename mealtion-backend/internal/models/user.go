@@ -13,3 +13,13 @@ type User struct {
 	Name         string             `bson:"name" json:"name"`
 	CreatedAt    time.Time          `bson:"createdAt" json:"createdAt"`
 }
+
+// RefreshToken represents a stored refresh token for token rotation and revocation
+type RefreshToken struct {
+	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+	UserID    primitive.ObjectID `bson:"userId" json:"userId"`
+	TokenHash string             `bson:"tokenHash" json:"-"` // SHA256 hash of the token
+	ExpiresAt time.Time          `bson:"expiresAt" json:"expiresAt"`
+	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
+	Revoked   bool               `bson:"revoked" json:"revoked"`
+}

@@ -30,6 +30,8 @@ func main() {
 	r.HandleFunc("/health", s.Health).Methods(http.MethodGet)
 	r.HandleFunc("/auth/register", s.Register).Methods(http.MethodPost)
 	r.HandleFunc("/auth/login", s.Login).Methods(http.MethodPost)
+	r.HandleFunc("/auth/refresh", s.Refresh).Methods(http.MethodPost)
+	r.HandleFunc("/auth/logout", s.Logout).Methods(http.MethodPost)
 	r.HandleFunc("/auth/me", s.Me).Methods(http.MethodGet) // will be protected below (better)
 
 	// Protected (JWT required)

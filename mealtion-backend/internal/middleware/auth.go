@@ -20,7 +20,8 @@ func GetUserID(r *http.Request) (string, bool) {
 	return id, ok
 }
 
-// WithAuth verifies JWT from Authorization: Bearer <token> and injects userId into context.
+// WithAuth verifies JWT access token from Authorization: Bearer <token> and injects userId into context.
+// Only accepts access tokens (type: "access"), rejects refresh tokens.
 func WithAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		auth := r.Header.Get("Authorization")
@@ -51,6 +52,13 @@ func WithAuth(next http.Handler) http.Handler {
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
 			http.Error(w, "invalid token claims", http.StatusUnauthorized)
+			return
+		}
+
+		// Verify this is an access token, not a refresh token
+		tokenType, _ := claims["type"].(string)
+		if tokenType != "access" {
+			http.Error(w, "invalid token type", http.StatusUnauthorized)
 			return
 		}
 
