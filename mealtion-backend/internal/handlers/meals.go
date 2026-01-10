@@ -189,3 +189,52 @@ func (s *Server) DeleteMeal(w http.ResponseWriter, r *http.Request) {
 
 	_ = json.NewEncoder(w).Encode(map[string]any{"deleted": true})
 }
+
+// MealCalendarEntry is a lightweight struct for calendar dots
+type MealCalendarEntry struct {
+	Date   string `json:"date"`
+	Status string `json:"status"`
+}
+
+// MealsCalendar returns all meal dates and statuses for calendar dots display
+// GET /meals/calendar - returns all meals' date and status (lightweight, no pagination)
+func (s *Server) MealsCalendar(w http.ResponseWriter, r *http.Request) {
+	w.Header().Set("Content-Type", "application/json")
+
+	userIDHex, ok := middleware.GetUserID(r)
+	if !ok {
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return
+	}
+	uid, err := primitive.ObjectIDFromHex(userIDHex)
+	if err != nil {
+		http.Error(w, "invalid user id", http.StatusUnauthorized)
+		return
+	}
+
+	// Only project the fields we need: date and status
+	projection := bson.M{
+		"date":   1,
+		"status": 1,
+		"_id":    0,
+	}
+
+	cur, err := s.MealsCol.Find(
+		r.Context(),
+		bson.M{"userId": uid},
+		options.Find().SetProjection(projection),
+	)
+	if err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+	defer cur.Close(r.Context())
+
+	var items []MealCalendarEntry
+	if err := cur.All(r.Context(), &items); err != nil {
+		http.Error(w, err.Error(), 500)
+		return
+	}
+
+	_ = json.NewEncoder(w).Encode(map[string]any{"items": items})
+}

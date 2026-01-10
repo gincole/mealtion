@@ -21,6 +21,10 @@ class AppState extends ChangeNotifier {
   List<Plan> _plans = [];
   List<Plan> get plans => _plans;
 
+  /// Calendar entries (all meal dates & statuses for calendar dots)
+  List<MealCalendarEntry> _calendarEntries = [];
+  List<MealCalendarEntry> get calendarEntries => _calendarEntries;
+
   bool _loadingMeals = false;
   bool get loadingMeals => _loadingMeals;
 
@@ -41,7 +45,7 @@ class AppState extends ChangeNotifier {
         _user = user;
         _authState = AppAuthState.authenticated;
         // Load data after successful auto-login
-        await Future.wait([loadMeals(), loadPlans()]);
+        await Future.wait([loadMeals(), loadPlans(), loadCalendar()]);
       } else {
         _authState = AppAuthState.unauthenticated;
       }
@@ -57,7 +61,7 @@ class AppState extends ChangeNotifier {
     _authState = AppAuthState.authenticated;
     notifyListeners();
 
-    await Future.wait([loadMeals(), loadPlans()]);
+    await Future.wait([loadMeals(), loadPlans(), loadCalendar()]);
   }
 
   /// Logout
@@ -66,6 +70,7 @@ class AppState extends ChangeNotifier {
     _user = null;
     _meals = [];
     _plans = [];
+    _calendarEntries = [];
     _hasMoreMeals = true;
     _authState = AppAuthState.unauthenticated;
     notifyListeners();
@@ -130,6 +135,17 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Load calendar entries (all meal dates & statuses for calendar dots)
+  Future<void> loadCalendar() async {
+    try {
+      _calendarEntries = await mealService.getMealsCalendar();
+      notifyListeners();
+    } catch (e) {
+      // Silently fail - calendar will use meals list as fallback
+      _error = e.toString();
+    }
+  }
+
   /// Add a new meal
   Future<void> addMeal({
     required String title,
@@ -151,6 +167,8 @@ class AppState extends ChangeNotifier {
         imageContentType: imageContentType,
       );
       _meals.insert(0, meal); // Add to beginning of list
+      // Also update calendar entries
+      _calendarEntries.insert(0, MealCalendarEntry(date: date, status: status));
       notifyListeners();
     } catch (e) {
       rethrow;
@@ -196,6 +214,8 @@ class AppState extends ChangeNotifier {
     try {
       await mealService.deleteMeal(mealId);
       _meals.removeWhere((m) => m.id == mealId);
+      // Reload calendar to sync dots (since we don't track meal IDs in calendar entries)
+      await loadCalendar();
       notifyListeners();
     } catch (e) {
       rethrow;
@@ -205,6 +225,15 @@ class AppState extends ChangeNotifier {
   /// Get meals as widget-compatible maps
   List<Map<String, dynamic>> get mealsForWidgets {
     return _meals.map((m) => m.toWidgetMap()).toList();
+  }
+
+  /// Get all calendar entries as widget-compatible maps (for calendar dots)
+  List<Map<String, dynamic>> get calendarForWidgets {
+    if (_calendarEntries.isNotEmpty) {
+      return _calendarEntries.map((e) => e.toWidgetMap()).toList();
+    }
+    // Fallback to meals list if calendar not loaded
+    return _meals.map((m) => {'date': m.date, 'mood': m.status}).toList();
   }
 
   /// Get plans as widget-compatible maps (grouped format for UI)

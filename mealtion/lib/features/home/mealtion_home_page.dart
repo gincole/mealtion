@@ -111,6 +111,7 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
     final appState = context.watch<AppState>();
     final meals = appState.mealsForWidgets;
     final plans = appState.plansForWidgets;
+    final calendarData = appState.calendarForWidgets;
     final isLoading = appState.loadingMeals || appState.loadingPlans;
 
     return Scaffold(
@@ -126,6 +127,7 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
                 children: [
                   _HomeView(
                     meals: meals,
+                    calendarData: calendarData,
                     plans: plans,
                     onOpenMealDetail: openMealDetailModal,
                     moodColor: moodColor,
@@ -133,6 +135,7 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
                       await Future.wait([
                         appState.loadMeals(),
                         appState.loadPlans(),
+                        appState.loadCalendar(),
                       ]);
                     },
                   ),
@@ -223,6 +226,7 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
 class _HomeView extends StatelessWidget {
   const _HomeView({
     required this.meals,
+    required this.calendarData,
     required this.plans,
     required this.onOpenMealDetail,
     required this.moodColor,
@@ -230,6 +234,7 @@ class _HomeView extends StatelessWidget {
   });
 
   final List<Map<String, dynamic>> meals;
+  final List<Map<String, dynamic>> calendarData;
   final List<Map<String, dynamic>> plans;
   final void Function(Map<String, dynamic>) onOpenMealDetail;
   final Color Function(String) moodColor;
@@ -300,7 +305,7 @@ class _HomeView extends StatelessWidget {
               ),
               const SizedBox(height: 32),
 
-              CalendarCard(meals: meals),
+              CalendarCard(meals: calendarData),
 
               const SizedBox(height: 32),
 

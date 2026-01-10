@@ -97,6 +97,36 @@ class MealService {
   Future<void> deleteMeal(String id) async {
     await _api.delete('/meals/$id');
   }
+
+  /// Get all meal dates and statuses for calendar dots (lightweight, no pagination)
+  Future<List<MealCalendarEntry>> getMealsCalendar() async {
+    final response = await _api.get('/meals/calendar');
+    final items = (response['items'] as List?) ?? [];
+    return items.map((item) => MealCalendarEntry.fromJson(item)).toList();
+  }
+}
+
+/// Lightweight entry for calendar dots
+class MealCalendarEntry {
+  final String date;
+  final String status;
+
+  MealCalendarEntry({required this.date, required this.status});
+
+  factory MealCalendarEntry.fromJson(Map<String, dynamic> json) {
+    return MealCalendarEntry(
+      date: json['date'] ?? '',
+      status: json['status'] ?? 'green',
+    );
+  }
+
+  /// Convert to widget-compatible map with 'mood' key
+  Map<String, dynamic> toWidgetMap() {
+    return {
+      'date': date,
+      'mood': status,
+    };
+  }
 }
 
 // Global singleton

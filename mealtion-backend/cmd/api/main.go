@@ -36,6 +36,9 @@ func main() {
 	r.Handle("/meals", middleware.WithAuth(http.HandlerFunc(s.Meals))).
 		Methods(http.MethodGet, http.MethodPost, http.MethodOptions)
 
+	r.Handle("/meals/calendar", middleware.WithAuth(http.HandlerFunc(s.MealsCalendar))).
+		Methods(http.MethodGet, http.MethodOptions)
+
 	r.Handle("/meals/{id}", middleware.WithAuth(http.HandlerFunc(s.DeleteMeal))).
 		Methods(http.MethodDelete, http.MethodOptions)
 
