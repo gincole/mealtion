@@ -62,10 +62,21 @@ class Meal {
 class MealService {
   final ApiClient _api = ApiClient();
 
-  Future<List<Meal>> getMeals({int limit = 50, int offset = 0}) async {
-    final response = await _api.get('/meals?limit=$limit&offset=$offset');
+  Future<List<Meal>> getMeals({int limit = 50, int offset = 0, int? month, int? year}) async {
+    String url = '/meals?limit=$limit&offset=$offset';
+    if (month != null && year != null) {
+      url += '&month=$month&year=$year';
+    }
+    final response = await _api.get(url);
     final items = (response['items'] as List?) ?? [];
     return items.map((item) => Meal.fromJson(item)).toList();
+  }
+
+  /// Get available months that have meals data
+  Future<List<MonthYearEntry>> getAvailableMonths() async {
+    final response = await _api.get('/meals/months');
+    final items = (response['items'] as List?) ?? [];
+    return items.map((item) => MonthYearEntry.fromJson(item)).toList();
   }
 
   Future<Meal> createMeal({
@@ -127,6 +138,39 @@ class MealCalendarEntry {
       'mood': status,
     };
   }
+}
+
+/// Represents a month-year entry for the month selector
+class MonthYearEntry {
+  final int month;
+  final int year;
+  final String label;
+  final int mealCount;
+
+  MonthYearEntry({
+    required this.month,
+    required this.year,
+    required this.label,
+    required this.mealCount,
+  });
+
+  factory MonthYearEntry.fromJson(Map<String, dynamic> json) {
+    return MonthYearEntry(
+      month: json['month'] ?? 1,
+      year: json['year'] ?? 2025,
+      label: json['label'] ?? '',
+      mealCount: json['mealCount'] ?? 0,
+    );
+  }
+
+  @override
+  bool operator ==(Object other) {
+    if (identical(this, other)) return true;
+    return other is MonthYearEntry && other.month == month && other.year == year;
+  }
+
+  @override
+  int get hashCode => month.hashCode ^ year.hashCode;
 }
 
 // Global singleton

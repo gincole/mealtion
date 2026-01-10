@@ -148,6 +148,11 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
                     onDeleteMeal: (mealId) async {
                       await appState.deleteMeal(mealId);
                     },
+                    availableMonths: appState.availableMonths,
+                    selectedMonth: appState.selectedMonth,
+                    onMonthSelected: (month) async {
+                      await appState.setSelectedMonth(month);
+                    },
                   ),
                   PlanView(
                     plans: plans,

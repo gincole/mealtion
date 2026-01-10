@@ -31,6 +31,14 @@ class AppState extends ChangeNotifier {
   bool _loadingPlans = false;
   bool get loadingPlans => _loadingPlans;
 
+  /// Available months that have meals data
+  List<MonthYearEntry> _availableMonths = [];
+  List<MonthYearEntry> get availableMonths => _availableMonths;
+
+  /// Currently selected month for filtering (null = no filter, show all)
+  MonthYearEntry? _selectedMonth;
+  MonthYearEntry? get selectedMonth => _selectedMonth;
+
   String? _error;
   String? get error => _error;
 
@@ -45,7 +53,7 @@ class AppState extends ChangeNotifier {
         _user = user;
         _authState = AppAuthState.authenticated;
         // Load data after successful auto-login
-        await Future.wait([loadMeals(), loadPlans(), loadCalendar()]);
+        await Future.wait([loadMeals(), loadPlans(), loadCalendar(), loadAvailableMonths()]);
       } else {
         _authState = AppAuthState.unauthenticated;
       }
@@ -61,7 +69,7 @@ class AppState extends ChangeNotifier {
     _authState = AppAuthState.authenticated;
     notifyListeners();
 
-    await Future.wait([loadMeals(), loadPlans(), loadCalendar()]);
+    await Future.wait([loadMeals(), loadPlans(), loadCalendar(), loadAvailableMonths()]);
   }
 
   /// Logout
@@ -71,6 +79,8 @@ class AppState extends ChangeNotifier {
     _meals = [];
     _plans = [];
     _calendarEntries = [];
+    _availableMonths = [];
+    _selectedMonth = null;
     _hasMoreMeals = true;
     _authState = AppAuthState.unauthenticated;
     notifyListeners();
@@ -83,7 +93,12 @@ class AppState extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _meals = await mealService.getMeals(limit: 50, offset: 0);
+      _meals = await mealService.getMeals(
+        limit: 50,
+        offset: 0,
+        month: _selectedMonth?.month,
+        year: _selectedMonth?.year,
+      );
       _hasMoreMeals = _meals.length >= 50;
     } catch (e) {
       _error = e.toString();
@@ -104,6 +119,8 @@ class AppState extends ChangeNotifier {
       final newMeals = await mealService.getMeals(
         limit: 50,
         offset: _meals.length,
+        month: _selectedMonth?.month,
+        year: _selectedMonth?.year,
       );
       
       if (newMeals.isEmpty || newMeals.length < 50) {
@@ -146,6 +163,30 @@ class AppState extends ChangeNotifier {
     }
   }
 
+  /// Load available months that have meals data
+  Future<void> loadAvailableMonths() async {
+    try {
+      _availableMonths = await mealService.getAvailableMonths();
+      // Auto-select the most recent month if none is selected and months are available
+      if (_selectedMonth == null && _availableMonths.isNotEmpty) {
+        _selectedMonth = _availableMonths.first;
+      }
+      notifyListeners();
+    } catch (e) {
+      // Silently fail - months will be empty
+      _error = e.toString();
+    }
+  }
+
+  /// Set the selected month-year for filtering
+  Future<void> setSelectedMonth(MonthYearEntry? month) async {
+    if (_selectedMonth == month) return;
+    _selectedMonth = month;
+    notifyListeners();
+    // Reload meals with the new filter
+    await loadMeals();
+  }
+
   /// Add a new meal
   Future<void> addMeal({
     required String title,
@@ -169,6 +210,8 @@ class AppState extends ChangeNotifier {
       _meals.insert(0, meal); // Add to beginning of list
       // Also update calendar entries
       _calendarEntries.insert(0, MealCalendarEntry(date: date, status: status));
+      // Refresh available months in case this meal added a new month
+      await loadAvailableMonths();
       notifyListeners();
     } catch (e) {
       rethrow;
@@ -216,6 +259,8 @@ class AppState extends ChangeNotifier {
       _meals.removeWhere((m) => m.id == mealId);
       // Reload calendar to sync dots (since we don't track meal IDs in calendar entries)
       await loadCalendar();
+      // Refresh available months in case this was the last meal of a month
+      await loadAvailableMonths();
       notifyListeners();
     } catch (e) {
       rethrow;

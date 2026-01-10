@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../app/colors.dart';
 import '../../app/app_state.dart';
+import '../meals/meal_service.dart';
 import 'widgets/timeline.dart';
+import 'widgets/month_year_selector.dart';
 
 class GalleryView extends StatefulWidget {
   const GalleryView({
@@ -13,6 +15,9 @@ class GalleryView extends StatefulWidget {
     required this.onOpenMealDetail,
     required this.moodColor,
     required this.onDeleteMeal,
+    required this.availableMonths,
+    required this.selectedMonth,
+    required this.onMonthSelected,
   });
 
   final List<Map<String, dynamic>> meals;
@@ -21,6 +26,9 @@ class GalleryView extends StatefulWidget {
   final void Function(Map<String, dynamic>) onOpenMealDetail;
   final Color Function(String) moodColor;
   final void Function(String mealId) onDeleteMeal;
+  final List<MonthYearEntry> availableMonths;
+  final MonthYearEntry? selectedMonth;
+  final void Function(MonthYearEntry?) onMonthSelected;
 
   @override
   State<GalleryView> createState() => _GalleryViewState();
@@ -142,6 +150,17 @@ class _GalleryViewState extends State<GalleryView> {
                       onTap: () => widget.onChangeMode('grid'),
                     ),
                   ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            // Month-Year Selector
+            Row(
+              children: [
+                MonthYearSelector(
+                  availableMonths: widget.availableMonths,
+                  selectedMonth: widget.selectedMonth,
+                  onMonthSelected: widget.onMonthSelected,
                 ),
               ],
             ),
