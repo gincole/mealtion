@@ -118,7 +118,8 @@ class _GalleryViewState extends State<GalleryView> {
   Widget build(BuildContext context) {
     final groupedMeals = _groupMealsByDate();
     final appState = context.watch<AppState>();
-    final isLoadingMore = appState.loadingMeals && widget.meals.isNotEmpty;
+    // Show loading only for pagination (hasMoreMeals), not for month switching
+    final isLoadingMore = appState.loadingMeals && widget.meals.isNotEmpty && appState.hasMoreMeals;
 
     return SingleChildScrollView(
       controller: _scrollController,
@@ -166,7 +167,18 @@ class _GalleryViewState extends State<GalleryView> {
             ),
             const SizedBox(height: 16),
 
-            if (widget.meals.isEmpty)
+            // Show loading indicator when switching months (loading but has meals from previous selection)
+            if (appState.loadingMeals && !appState.hasMoreMeals)
+              const Padding(
+                padding: EdgeInsets.all(32.0),
+                child: Center(
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                    strokeWidth: 2,
+                  ),
+                ),
+              )
+            else if (widget.meals.isEmpty)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(32),

@@ -112,7 +112,8 @@ class _MealtionHomePageState extends State<MealtionHomePage> {
     final meals = appState.mealsForWidgets;
     final plans = appState.plansForWidgets;
     final calendarData = appState.calendarForWidgets;
-    final isLoading = appState.loadingMeals || appState.loadingPlans;
+    // Only show full-screen loading overlay on initial load (when meals are empty)
+    final isLoading = (appState.loadingMeals && meals.isEmpty) || appState.loadingPlans;
 
     return Scaffold(
       body: Stack(

@@ -52,8 +52,9 @@ class AppState extends ChangeNotifier {
       if (user != null) {
         _user = user;
         _authState = AppAuthState.authenticated;
-        // Load data after successful auto-login
-        await Future.wait([loadMeals(), loadPlans(), loadCalendar(), loadAvailableMonths()]);
+        // Load available months first to set default filter, then load meals with that filter
+        await loadAvailableMonths();
+        await Future.wait([loadMeals(), loadPlans(), loadCalendar()]);
       } else {
         _authState = AppAuthState.unauthenticated;
       }
@@ -69,7 +70,9 @@ class AppState extends ChangeNotifier {
     _authState = AppAuthState.authenticated;
     notifyListeners();
 
-    await Future.wait([loadMeals(), loadPlans(), loadCalendar(), loadAvailableMonths()]);
+    // Load available months first to set default filter, then load meals with that filter
+    await loadAvailableMonths();
+    await Future.wait([loadMeals(), loadPlans(), loadCalendar()]);
   }
 
   /// Logout
@@ -182,8 +185,7 @@ class AppState extends ChangeNotifier {
   Future<void> setSelectedMonth(MonthYearEntry? month) async {
     if (_selectedMonth == month) return;
     _selectedMonth = month;
-    notifyListeners();
-    // Reload meals with the new filter
+    // Don't notify here - loadMeals will handle the notification
     await loadMeals();
   }
 
